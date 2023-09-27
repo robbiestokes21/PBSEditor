@@ -1,0 +1,256 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokemon PBS Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: lightgray;
+            margin: 0;
+        }
+        #container {
+        display: flex;
+        justify-content: space-between;
+        background: ghostwhite;
+        }
+
+        #app {
+            width: 450px; /* Adjust as needed */
+        }
+
+        #output {
+            width: 48%; /* Adjust as needed */
+            margin-top: 81;
+        }
+        #MenuBar {
+            margin-bottom: 20px;
+        }
+    
+        #editor {
+            width: 80%;
+            max-width: 600px;
+            border: 2px solid red;
+            padding: 20px;
+            margin-top: 20px;
+            box-sizing: border-box;
+            background-color: lightgray;
+            margin-left: 10px;
+        }
+        #buttons {
+            width: auto;
+        }
+    </style>
+    
+</head>
+<body>
+    <div id="container">
+        <div id="app">
+            <h1>Pokemon PBS Editor</h1>
+            <div id="MenuBar">
+                <label for="fileInput">Select a file:</label>
+                <input type="file" id="fileInput" onchange="loadFile()">
+                <br>
+                <br>
+                <div id="buttons">
+                    <button onclick="saveDataToFile()">Save</button>
+                    <button onclick="saveDisplayedData()">Save Displayed Data</button>
+                    <button onclick="generateOutputContent()">Display Data</button>
+                </div>
+            </div>
+            <div id="editor">
+            </div>
+        </div>
+        <div id="output">
+            <div>
+                <h1>Generated Content</h1>
+            </div>
+            <textarea id="generatedContent" rows="10" style="width: 95%; height: 700px;background: lightgray;border: 2px solid red;"></textarea>
+        </div>
+    </div>
+    <script>
+        let filePath = '';
+        let sections = {};
+        
+        window.onload = function () {
+            // For simplicity, I'm calling loadFile here. You can adjust this as needed.
+            loadFile();
+            let savedFileName = localStorage.getItem("fileName");
+            document.getElementById("fileInput").textContent = savedFileName;
+        };
+
+        function loadFile() {
+            let fileInput = document.getElementById("fileInput");
+            let file = fileInput.files[0];
+            let fileName = file.name;
+            
+            // Save the file name in sessionStorage
+            localStorage.setItem("fileName", fileName);
+            console.log(fileName);
+            if (file) {
+                let reader = new FileReader();
+
+                reader.onload = function (e) {
+                    let fileContent = e.target.result;
+                    processFileContent(fileContent);
+                };
+
+                reader.readAsText(file);
+            }
+        }
+
+        function processFileContent(fileContent) {
+            try {
+                let lines = fileContent.split('\n');
+                let currentSection = '';
+                sections = {}; // Clear the sections object
+
+                for (let line of lines) {
+                    if (line.trim().startsWith('#-------------------------------')) {
+                        currentSection = '';
+                    } else if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                        // Extract section name using a regular expression
+                        currentSection = line.trim().match(/\[([^[\]]+)\]/)?.[1] || '';
+                        sections[currentSection] = {}; // Use an object to store key-value pairs
+                    } else if (currentSection !== '') {
+                        let parts = line.split("=");
+                        if (parts.length === 2) {
+                            let key = parts[0].trim();
+                            let value = parts[1].trim();
+                            sections[currentSection][key] = value;
+                        }
+                    }
+                }
+
+                // Call the function to initialize text boxes with the loaded data
+                initializeTextBoxes();
+            } catch (error) {
+                // Handle any errors, e.g., invalid format
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function initializeTextBoxes() {
+            try {
+                let editor = document.getElementById('editor');
+                editor.innerHTML = ''; // Clear previous content
+
+                // Loop through each section and its key-value pairs
+                for (let sectionName in sections) {
+                    if (sections.hasOwnProperty(sectionName)) {
+                        let sectionData = sections[sectionName];
+
+                        // Add horizontal line as a separator between sections
+                        let separator = document.createElement('hr');
+                        separator.style.border = '1px solid black';
+                        separator.style.width = '100%';
+                        editor.appendChild(separator);
+
+                        // Add the section header
+                        let sectionHeader = `[${sectionName}]`;
+                        let sectionHeaderLabel = document.createElement('div');
+                        sectionHeaderLabel.innerText = sectionHeader;
+                        sectionHeaderLabel.style.fontWeight = 'bold';
+                        sectionHeaderLabel.style.marginTop = '10px';
+                        editor.appendChild(sectionHeaderLabel);
+
+                        for (let key in sectionData) {
+                            if (sectionData.hasOwnProperty(key) && key.trim() !== '') {
+                                // Add the key-value pair
+                                let keyLabel = document.createElement('div');
+                                keyLabel.innerText = key;
+                                keyLabel.style.fontWeight = 'normal';
+                                keyLabel.style.marginTop = '5px';
+                                editor.appendChild(keyLabel);
+
+                                // Create and configure a text box for the value
+                                let valueTextBox = document.createElement('input');
+                                valueTextBox.type = 'text';
+                                valueTextBox.value = sectionData[key];
+                                valueTextBox.style.marginTop = '5px';
+                                editor.appendChild(valueTextBox);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                // Handle any errors
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function saveDataToFile() {
+            // Replace this with actual logic to save data to a server or another destination
+            // ...
+           
+            // Example: Creating a Blob and downloading it
+            let file = document.getElementById("fileInput");
+            fileName = file.textContent;
+            console.log(fileName);
+            let content = generateFileContent();
+            let blob = new Blob([content], { type: "text/plain" });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            
+            link.download = fileName;
+            link.click();
+        }
+
+        function generateFileContent() {
+            // Generate the file content based on the sections object
+            let fileContent = '';
+
+            for (let sectionName in sections) {
+                if (sections.hasOwnProperty(sectionName)) {
+                    fileContent += '#-------------------------------\n';
+                    fileContent += `[${sectionName}]\n`;
+
+                    let sectionData = sections[sectionName];
+                    for (let key in sectionData) {
+                        if (sectionData.hasOwnProperty(key)) {
+                            let value = sectionData[key];
+                            fileContent += `${key} = ${value}\n`;
+                        }
+                    }
+                }
+            }
+
+            return fileContent;
+        }
+
+        function saveDisplayedData() {
+            let textBoxes = document.querySelectorAll('#editor input[type="text"]');
+            textBoxes.forEach((textBox) => {
+                let sectionHeader = findPreviousHeader(textBox);
+                if (sectionHeader) {
+                    let sectionName = sectionHeader.innerText.slice(1, -1);
+                    let key = textBox.previousSibling.innerText;
+                    sections[sectionName][key] = textBox.value;
+                }
+            });
+
+            // Call the function to save the data to file
+            saveDataToFile();
+        }
+        function findPreviousHeader(element) {
+            let previous = element.previousElementSibling;
+            while (previous) {
+                if (previous.tagName.toLowerCase() === 'div' && previous.innerText.startsWith('[') && previous.innerText.endsWith(']')) {
+                    return previous;
+                }
+                previous = previous.previousElementSibling;
+            }
+            return null;
+        }
+    // Add this function to generate content for the textarea
+    function generateOutputContent() {
+        let generatedContentTextarea = document.getElementById('generatedContent');
+        generatedContentTextarea.value = generateFileContent();
+    }
+    </script>
+
+
+</body></html>
