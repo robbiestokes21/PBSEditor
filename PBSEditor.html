@@ -1,4 +1,6 @@
-<html lang="en"><head>
+<html lang="en">
+
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokemon PBS Editor</title>
@@ -12,24 +14,28 @@
             background-color: lightgray;
             margin: 0;
         }
+
         #container {
-        display: flex;
-        justify-content: space-between;
-        background: ghostwhite;
+            display: flex;
+            justify-content: space-between;
+            background: ghostwhite;
         }
 
         #app {
-            width: 450px; /* Adjust as needed */
+            width: 450px;
+            /* Adjust as needed */
         }
 
         #output {
-            width: 48%; /* Adjust as needed */
+            width: 48%;
+            /* Adjust as needed */
             margin-top: 81;
         }
+
         #MenuBar {
             margin-bottom: 20px;
         }
-    
+
         #editor {
             width: 80%;
             max-width: 600px;
@@ -39,17 +45,62 @@
             box-sizing: border-box;
             background-color: lightgray;
             margin-left: 10px;
+            max-height: 700px;
+            overflow: auto;
         }
+
         #buttons {
             width: auto;
         }
+                /* Styles for the popup container */
+                #popup-container {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        /* Styles for the overlay background */
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
     </style>
-    
+
 </head>
+
 <body>
     <div id="container">
         <div id="app">
             <h1>Pokemon PBS Editor</h1>
+            <div id="notes">
+                <p style="color:red;">Please Read</p>
+
+            </div>
+            <div id="overlay"></div>
+            <div id="popup-container">
+                <h2>Patch Notes</h2>
+                <p>encounters.txt will not work.</p>
+                <p>map_connections.txt will not work.</p>
+                <p>map_metadata.txt will not work.</p>
+                <p>map_metadata.txt does work but right now pissing the first line with #.</p>
+                <p>phone.txt will not work.</p>
+                <p>regional_dexes.txt will not work.</p>
+                <p>town_map.txt will not work right now.</p>
+                <button onclick="closePopup()">Close</button>
+            </div>
             <div id="MenuBar">
                 <label for="fileInput">Select a file:</label>
                 <input type="file" id="fileInput" onchange="loadFile()">
@@ -58,7 +109,7 @@
                 <div id="buttons">
                     <button onclick="saveDataToFile()">Save</button>
                     <button onclick="saveDisplayedData()">Save Displayed Data</button>
-                    <button onclick="generateOutputContent()">Display Data</button>
+                    <button onclick="generateFileContent()">Display Data</button>
                 </div>
             </div>
             <div id="editor">
@@ -68,40 +119,194 @@
             <div>
                 <h1>Generated Content</h1>
             </div>
-            <textarea id="generatedContent" rows="10" style="width: 95%; height: 700px;background: lightgray;border: 2px solid red;"></textarea>
+            <textarea id="generatedContent" rows="10"
+                style="width: 95%; height: 700px;background: lightgray;border: 2px solid red;"></textarea>
         </div>
     </div>
     <script>
-        let filePath = '';
-        let sections = {};
-        
-        window.onload = function () {
-            // For simplicity, I'm calling loadFile here. You can adjust this as needed.
-            loadFile();
-            let savedFileName = localStorage.getItem("fileName");
-            document.getElementById("fileInput").textContent = savedFileName;
-        };
+        let trainersList = [];
+        let trainerLists = [];
+        let locations = [];
+        let sections = [];
+        let filenames = ["cup_poke_pkmn.txt", "cup_pika_pkmn.txt", "cup_fancy_pkmn.txt", "battle_tower_pokemon.txt", "cup_fancy_pkmn_single.txt", "cup_little_pkmn.txt", "cup_fancy_pkmn.txt"];
+        let filenames2 = ["another_file.txt", "some_text.txt", "cup_fancy_trainers.txt"];
+        let filenames4 = ["battle_facility_lists.txt", "another_file.txt", "some_text.txt"];
+        let filenames5 = ["encounters.txt", "another_file.txt", "some_text.txt"];
 
+        // Function to open the popup
+        function openPopup() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('popup-container').style.display = 'block';
+        }
+
+        // Function to close the popup
+        function closePopup() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('popup-container').style.display = 'none';
+        }
+
+        // Attach click event to the 'notes' div
+        document.getElementById('notes').addEventListener('click', openPopup);
         function loadFile() {
             let fileInput = document.getElementById("fileInput");
             let file = fileInput.files[0];
-            let fileName = file.name;
-            
+            let fileName = file.name.trim(); // Convert to lowercase
+
+
+
             // Save the file name in sessionStorage
             localStorage.setItem("fileName", fileName);
-            console.log(fileName);
+
+            console.log("fileName:", fileName);
+            console.log("filenames:", filenames);
+
             if (file) {
                 let reader = new FileReader();
 
                 reader.onload = function (e) {
                     let fileContent = e.target.result;
-                    processFileContent(fileContent);
+
+                    // Check if the filename is in the list
+                    let isFileInList = false;
+                    let isFileInList2 = false;
+                    let isFileInList4 = false;
+                    let isFileInList5 = false;
+                    for (let i = 0; i < filenames.length; i++) {
+                        console.log(`Comparing "${fileName}" with "${filenames[i].trim()}"`);
+                        if (fileName === filenames[i].trim()) {
+                            console.log("File is in the list");
+                            isFileInList = true;
+                            break;
+                        }
+                    }
+                    for (let i = 0; i < filenames2.length; i++) {
+                        console.log(`Comparing "${fileName}" with "${filenames2[i].trim()}"`);
+                        if (fileName === filenames2[i].trim()) {
+                            console.log("File is in the list");
+                            isFileInList2 = true;
+                            break;
+                        }
+                    }
+                    //for the fourth format
+                    for (let i = 0; i < filenames4.length; i++) {
+                        console.log(`Comparing "${fileName}" with "${filenames4[i].trim()}"`);
+                        if (fileName === filenames4[i].trim()) {
+                            console.log("File is in the list");
+                            isFileInList4 = true;
+                            break;
+                        }
+                    }
+                    for (let i = 0; i < filenames5.length; i++) {
+                        console.log(`Comparing "${fileName}" with "${filenames5[i].trim()}"`);
+                        if (fileName === filenames5[i].trim()) {
+                            console.log("File is in the list");
+                            isFileInList5 = true;
+                            break;
+                        }
+                    }
+                    if (isFileInList) {
+                        processSecondFormat(fileContent);
+                        generateFileContent();
+                    } else if (isFileInList2) {
+                        processThirdFormat(fileContent);
+                        generateFileContent();
+                    } else if (isFileInList4) {
+                        processFourthFormat(fileContent);
+                        generateFileContent();
+                    } else if (isFileInList5) {
+                        processFifthFormat(fileContent);
+                        generateFileContent();
+                    } else {
+                        console.log("File is NOT in the list");
+                        processFileContent(fileContent);
+                        generateFileContent();
+                    }
                 };
 
                 reader.readAsText(file);
             }
         }
 
+        function processSecondFormat(fileContent) {
+            console.log(fileContent);
+            try {
+                // Check if fileContent is defined and not empty
+                if (fileContent && fileContent.trim() !== '') {
+                    let lines = fileContent.split('\n');
+                    sections = [];
+
+                    for (let line of lines) {
+                        if (line.trim().startsWith('#-------------------------------')) {
+                            // Skip separator lines
+                            continue;
+                        } else {
+                            // Parse semicolon-separated values
+                            let parts = line.split(";");
+                            if (parts.length >= 5) {  // Check if there are at least 5 parts
+                                let pokemonName = parts[0].trim();
+                                console.log(pokemonName);
+                                let pokemonData = {
+                                    'Name': pokemonName,
+                                    'Item': parts[1].trim(),
+                                    'Nature': parts[2].trim(),
+                                    'Stats': parts[3].trim().split(','),
+                                    'Moves': parts[4].trim().split(',')
+                                };
+                                sections.push(pokemonData);
+                            }
+                        }
+                    }
+                    console.log('Sections in processSecondFormat:', sections);
+                    // Call the function to initialize text boxes with the loaded data
+                    initializeTextBoxesTwo(sections);
+                }
+            } catch (error) {
+                // Handle any errors, e.g., invalid format
+                alert('Error: ' + error.message);
+            }
+        }
+        function processThirdFormat(fileContent) {
+            try {
+                let lines = fileContent.split('\n');
+                trainersList = []; // Reset trainersList
+
+                let currentTrainer = {};
+
+                for (let line of lines) {
+                    if (line.trim().startsWith('#-------------------------------')) {
+                        // Skip the separator line
+                        continue;
+                    } else if (line.trim().startsWith('[') && line.trim().endsWith(']')) {
+                        // Start of a new trainer
+                        if (Object.keys(currentTrainer).length > 0) {
+                            trainersList.push(currentTrainer);
+                        }
+                        currentTrainer = {};
+                    } else {
+                        // Parse key-value pairs
+                        let parts = line.split("=");
+                        if (parts.length === 2) {
+                            let key = parts[0].trim();
+                            let value = parts[1].trim();
+                            currentTrainer[key] = value;
+                        }
+                    }
+                }
+
+                // Push the last trainer
+                if (Object.keys(currentTrainer).length > 0) {
+                    trainersList.push(currentTrainer);
+                }
+
+                console.log(trainersList);
+
+                // Call the function to display textboxes for the third format
+                initializeTextBoxesThird(trainersList);
+            } catch (error) {
+                // Handle any errors, e.g., invalid format
+                alert('Error: ' + error.message);
+            }
+        }
         function processFileContent(fileContent) {
             try {
                 let lines = fileContent.split('\n');
@@ -132,7 +337,330 @@
                 alert('Error: ' + error.message);
             }
         }
+        function processFourthFormat(fileContent) {
+            try {
+                let lines = fileContent.split('\n');
+                trainerLists = [];
+                let currentTrainerList = null;
 
+                for (let line of lines) {
+                    if (line.trim().startsWith('#-------------------------------')) {
+                        // Skip the separator line
+                        continue;
+                    } else if (line.trim().startsWith('[TrainerList]') || line.trim().startsWith('[DefaultTrainerList]')) {
+                        let isDefault = line.trim().startsWith('[DefaultTrainerList]');
+                        currentTrainerList = {
+                            Trainers: '',
+                            Pokemon: '',
+                            Challenges: '',
+                            isDefault: isDefault
+                        };
+                        trainerLists.push(currentTrainerList);
+                    } else if (line.trim() !== '' && line.indexOf('=') !== -1 && currentTrainerList) {
+                        let parts = line.split('=');
+                        let key = parts[0].trim();
+                        let value = parts[1].trim();
+
+                        // Check if the key is valid
+                        if (Object.prototype.hasOwnProperty.call(currentTrainerList, key)) {
+                            currentTrainerList[key] = value;
+                        }
+                    } else {
+                        console.log('Skipped line:', line); // Debugging line
+                    }
+                }
+                console.log(trainerLists);
+                // Call the function to display textboxes for the fourth format
+                initializeTextBoxesFour(trainerLists);
+            } catch (error) {
+                // Handle any errors, e.g., invalid format
+                alert('Error: ' + error.message);
+            }
+        }
+        /*
+        function processFifthFormat(fileContent) {
+            try {
+                let lines = fileContent.split('\n');
+                locations = [];
+                let currentLocation = null;
+
+                for (let line of lines) {
+                    if (line.trim().startsWith('#-------------------------------')) {
+                        // Skip the separator line
+                        continue;
+                    } else if (line.trim().startsWith('[')) {
+                        // New location
+                        let match = line.trim().match(/\[([\d,]+)\] # (.+)/);
+                        if (match) {
+                            currentLocation = {
+                                number: match[1],
+                                name: match[2],
+                                type: '',
+                                encounters: []
+                            };
+                            locations.push(currentLocation);
+                        }
+                    } else if (currentLocation && line.trim() !== '') {
+                        // Process location details
+                        if (line.includes('#')) {
+                            // Encounter type
+                            currentLocation.type = line.trim().substring(line.indexOf('#') + 1).trim();
+                        } else {
+                            // Individual encounter
+                            let parts = line.split(',');
+                            let encounter = {
+                                rate: parseInt(parts[0]),
+                                pokemon: parts[1],
+                                minLevel: parseInt(parts[2]),
+                                maxLevel: parseInt(parts[3])
+                            };
+                            currentLocation.encounters.push(encounter);
+                        }
+                    }
+                }
+
+                // Display details in console
+                for (let location of locations) {
+                    console.log(`[${location.number}] # ${location.name}`);
+                    if (location.type) {
+                        console.log(location.type);
+                    }
+                    for (let encounter of location.encounters) {
+                        console.log(`    ${encounter.rate},${encounter.pokemon},${encounter.minLevel},${encounter.maxLevel}`);
+                    }
+                }
+
+                // Call the function to display textboxes for the fifth format
+                initializeTextBoxesFive(locations);
+            } catch (error) {
+                // Handle any errors, e.g., invalid format
+                alert('Error: ' + error.message);
+            }
+        }
+
+        */
+
+
+        // Function to initialize textboxes format
+        /*
+         function initializeTextBoxesFive(locations) {
+            try {
+                let editor = document.getElementById('editor');
+                editor.innerHTML = ''; // Clear previous content
+
+                // Loop through each location
+                for (let i = 0; i < locations.length; i++) {
+                    let location = locations[i];
+
+                    // Add horizontal line as a separator between locations
+                    let separator = document.createElement('hr');
+                    separator.style.border = '1px solid black';
+                    separator.style.width = '100%';
+                    editor.appendChild(separator);
+
+                    // Add the location header
+                    let header = document.createElement('div');
+                    header.innerText = `[${location.name}]`;
+                    editor.appendChild(header);
+
+                    // Display type and encounters
+                    let typeLabel = document.createElement('div');
+                    typeLabel.innerText = 'Type';
+                    typeLabel.style.fontWeight = 'normal';
+                    typeLabel.style.marginTop = '5px';
+                    editor.appendChild(typeLabel);
+
+                    let typeTextBox = document.createElement('input');
+                    typeTextBox.type = 'text';
+                    typeTextBox.value = location.type;
+                    typeTextBox.style.marginTop = '5px';
+                    editor.appendChild(typeTextBox);
+
+                    let encountersLabel = document.createElement('div');
+                    encountersLabel.innerText = 'Encounters';
+                    encountersLabel.style.fontWeight = 'normal';
+                    encountersLabel.style.marginTop = '5px';
+                    editor.appendChild(encountersLabel);
+
+                    // Display each encounter
+                    for (let j = 0; j < location.encounters.length; j++) {
+                        let encounter = location.encounters[j];
+
+                        let rateLabel = document.createElement('div');
+                        rateLabel.innerText = `Rate ${j + 1}`;
+                        rateLabel.style.fontWeight = 'normal';
+                        rateLabel.style.marginTop = '5px';
+                        editor.appendChild(rateLabel);
+
+                        let rateTextBox = document.createElement('input');
+                        rateTextBox.type = 'text';
+                        rateTextBox.value = encounter.rate;
+                        rateTextBox.style.marginTop = '5px';
+                        editor.appendChild(rateTextBox);
+
+                        let pokemonLabel = document.createElement('div');
+                        pokemonLabel.innerText = 'Pokemon';
+                        pokemonLabel.style.fontWeight = 'normal';
+                        pokemonLabel.style.marginTop = '5px';
+                        editor.appendChild(pokemonLabel);
+
+                        let pokemonTextBox = document.createElement('input');
+                        pokemonTextBox.type = 'text';
+                        pokemonTextBox.value = encounter.pokemon;
+                        pokemonTextBox.style.marginTop = '5px';
+                        editor.appendChild(pokemonTextBox);
+
+                        let minLevelLabel = document.createElement('div');
+                        minLevelLabel.innerText = 'Min Level';
+                        minLevelLabel.style.fontWeight = 'normal';
+                        minLevelLabel.style.marginTop = '5px';
+                        editor.appendChild(minLevelLabel);
+
+                        let minLevelTextBox = document.createElement('input');
+                        minLevelTextBox.type = 'text';
+                        minLevelTextBox.value = encounter.minLevel;
+                        minLevelTextBox.style.marginTop = '5px';
+                        editor.appendChild(minLevelTextBox);
+
+                        let maxLevelLabel = document.createElement('div');
+                        maxLevelLabel.innerText = 'Max Level';
+                        maxLevelLabel.style.fontWeight = 'normal';
+                        maxLevelLabel.style.marginTop = '5px';
+                        editor.appendChild(maxLevelLabel);
+
+                        let maxLevelTextBox = document.createElement('input');
+                        maxLevelTextBox.type = 'text';
+                        maxLevelTextBox.value = encounter.maxLevel;
+                        maxLevelTextBox.style.marginTop = '5px';
+                        editor.appendChild(maxLevelTextBox);
+                    }
+                }
+            } catch (error) {
+                // Handle any errors
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        */
+        function initializeTextBoxesFour(trainerLists) {
+            console.log(trainerLists);
+            try {
+                let editor = document.getElementById('editor');
+                editor.innerHTML = ''; // Clear previous content
+
+                // Loop through each trainer list
+                for (let i = 0; i < trainerLists.length; i++) {
+                    let trainerList = trainerLists[i];
+
+                    // Add horizontal line as a separator between trainer lists
+                    let separator = document.createElement('hr');
+                    separator.style.border = '1px solid black';
+                    separator.style.width = '100%';
+                    editor.appendChild(separator);
+
+                    // Add the TrainerList header
+                    let header = document.createElement('div');
+                    header.innerText = trainerList.isDefault ? '[DefaultTrainerList]' : '[TrainerList]';
+                    editor.appendChild(header);
+
+                    // Display each property of the TrainerList except isDefault
+                    for (let key in trainerList) {
+                        if (key !== 'isDefault' && trainerList.hasOwnProperty(key)) {
+                            let keyLabel = document.createElement('div');
+                            keyLabel.innerText = key;
+                            keyLabel.style.fontWeight = 'normal';
+                            keyLabel.style.marginTop = '5px';
+                            editor.appendChild(keyLabel);
+
+                            let valueTextBox = document.createElement('input');
+                            valueTextBox.type = 'text';
+                            valueTextBox.value = trainerList[key];
+                            valueTextBox.style.marginTop = '5px';
+                            editor.appendChild(valueTextBox);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Handle any errors
+                alert('Error: ' + error.message);
+            }
+        }
+        function initializeTextBoxesThird(trainersList) {
+            try {
+                let editor = document.getElementById('editor');
+                editor.innerHTML = ''; // Clear previous content
+
+                for (let trainer of trainersList) {
+                    let separator = document.createElement('hr');
+                    separator.style.border = '1px solid black';
+                    separator.style.width = '100%';
+                    editor.appendChild(separator);
+
+                    for (let key in trainer) {
+                        if (trainer.hasOwnProperty(key)) {
+                            let sectionHeaderLabel = document.createElement('div');
+                            sectionHeaderLabel.innerText = key;
+                            sectionHeaderLabel.style.fontWeight = 'bold';
+                            sectionHeaderLabel.style.marginTop = '10px';
+                            editor.appendChild(sectionHeaderLabel);
+
+                            let valueTextBox = document.createElement('input');
+                            valueTextBox.type = 'text';
+                            valueTextBox.value = trainer[key];
+                            valueTextBox.style.marginTop = '5px';
+                            editor.appendChild(valueTextBox);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Handle any errors
+                alert('Error: ' + error.message);
+            }
+        }
+        function initializeTextBoxesTwo(sections) {
+            try {
+                let editor = document.getElementById('editor');
+                editor.innerHTML = ''; // Clear previous content
+
+                // Loop through each section and its key-value pairs
+                for (let pokemonData of sections) {
+                    let pokemonName = pokemonData['Name'];
+
+                    // Add horizontal line as a separator between sections
+                    let separator = document.createElement('hr');
+                    separator.style.border = '1px solid black';
+                    separator.style.width = '100%';
+                    editor.appendChild(separator);
+
+                    // Add the Pokemon name as a header
+                    let pokemonHeader = document.createElement('div');
+                    pokemonHeader.innerText = pokemonName;
+                    pokemonHeader.style.fontWeight = 'bold';
+                    pokemonHeader.style.marginTop = '10px';
+                    editor.appendChild(pokemonHeader);
+
+                    // Display each property of the Pokemon
+                    for (let key in pokemonData) {
+                        if (pokemonData.hasOwnProperty(key) && key !== 'Name') {
+                            let keyLabel = document.createElement('div');
+                            keyLabel.innerText = key;
+                            keyLabel.style.fontWeight = 'normal';
+                            keyLabel.style.marginTop = '5px';
+                            editor.appendChild(keyLabel);
+
+                            let valueTextBox = document.createElement('input');
+                            valueTextBox.type = 'text';
+                            valueTextBox.value = pokemonData[key];
+                            valueTextBox.style.marginTop = '5px';
+                            editor.appendChild(valueTextBox);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Handle any errors
+                alert('Error: ' + error.message);
+            }
+        }
         function initializeTextBoxes() {
             try {
                 let editor = document.getElementById('editor');
@@ -185,22 +713,114 @@
         function saveDataToFile() {
             // Replace this with actual logic to save data to a server or another destination
             // ...
-           
+
             // Example: Creating a Blob and downloading it
-            let file = document.getElementById("fileInput");
-            fileName = file.textContent;
+            let file = localStorage.getItem("fileName");
+            fileName = file;
             console.log(fileName);
-            let content = generateFileContent();
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            let content = generatedContentTextarea.value;
             let blob = new Blob([content], { type: "text/plain" });
             let link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            
+
             link.download = fileName;
             link.click();
         }
 
         function generateFileContent() {
-            // Generate the file content based on the sections object
+            let fileName = localStorage.getItem("fileName");
+            console.log("generate File Content Format");
+            console.log(trainerLists);
+            let isFileInList = false;
+            let isFileInList2 = false;
+            let isFileInList4 = false;
+            let isFileInList5 = false;
+
+            for (let i = 0; i < filenames.length; i++) {
+                console.log(`Comparing "${fileName}" with "${filenames[i].trim()}"`);
+                if (fileName === filenames[i].trim()) {
+                    console.log("File is in the list");
+                    isFileInList = true;
+                    break;
+                }
+            }
+
+            for (let i = 0; i < filenames2.length; i++) {
+                console.log(`Comparing "${fileName}" with "${filenames2[i].trim()}"`);
+                if (fileName === filenames2[i].trim()) {
+                    console.log("File is in the list");
+                    isFileInList2 = true;
+                    break;
+                }
+            }
+
+            // for the fourth format
+            for (let i = 0; i < filenames4.length; i++) {
+                console.log(`Comparing "${fileName}" with "${filenames4[i].trim()}"`);
+                if (fileName === filenames4[i].trim()) {
+                    console.log("File is in the list");
+                    isFileInList4 = true;
+                    break;
+                }
+            }
+            for (let i = 0; i < filenames5.length; i++) {
+                console.log(`Comparing "${fileName}" with "${filenames5[i].trim()}"`);
+                if (fileName === filenames5[i].trim()) {
+                    console.log("File is in the list");
+                    isFileInList5 = true;
+                    break;
+                }
+            }
+            if (isFileInList) {
+                console.log("generate File Content For Second Format");
+                generateFileContentForSecondFormat();
+            } else if (isFileInList2) {
+                generateFileContentForThirdFormat(trainersList);
+            } else if (isFileInList4) {
+
+                console.log("generate File Content For Fourth Format");
+                generateFileContentForFourthFormat(trainerLists); // Fix: Use trainerLists instead of trainersList
+            } else if (isFileInList5) {
+                console.log("generate File Content For Fifth Format");
+                generateFileContentForFifthFormat(locations)
+            } else {
+                generateFileContentFirst();
+            }
+        }
+
+
+
+        // Functions to generate file content for the file format
+        function generateFileContentForSecondFormat() {
+
+
+            let fileContent = '';
+            fileContent += '#-------------------------------\n';
+            for (let pokemonName in sections) {
+                if (sections.hasOwnProperty(pokemonName)) {
+                    console.log('Processing Pokémon:', sections[pokemonName]["Name"]);
+                    let PokeName = sections[pokemonName]["Name"];
+
+                    fileContent += `${PokeName};`;
+
+                    let sectionData = sections[pokemonName];
+
+                    // Add item, nature, stats
+                    fileContent += `${sectionData['Item']};${sectionData['Nature']};${sectionData['Stats'].join(',')};`;
+
+                    // Add moves
+                    fileContent += `${sectionData['Moves'].join(',')}\n`;
+                }
+            }
+
+            console.log('Generated File Content:', fileContent);
+
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            generatedContentTextarea.value = fileContent;
+        }
+        function generateFileContentFirst() {
+
             let fileContent = '';
 
             for (let sectionName in sections) {
@@ -217,9 +837,76 @@
                     }
                 }
             }
-
-            return fileContent;
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            generatedContentTextarea.value = fileContent;
         }
+        function generateFileContentForThirdFormat(trainersList) {
+
+            console.log(trainersList);
+            let fileContent = '';
+
+            for (let trainer of trainersList) {
+                fileContent += '#-------------------------------\n';
+                fileContent += '[Trainer]\n';
+
+                for (let key in trainer) {
+                    if (trainer.hasOwnProperty(key)) {
+                        let value = trainer[key];
+                        fileContent += `${key} = ${value}\n`;
+                    }
+                }
+            }
+
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            generatedContentTextarea.value = fileContent;
+        }
+        function generateFileContentForFourthFormat(trainerLists) {
+            console.log(trainerLists);
+            let fileContent = '';
+
+            for (let i = 0; i < trainerLists.length; i++) {
+                let trainerList = trainerLists[i];
+
+                fileContent += '#-------------------------------\n';
+
+                // Add the TrainerList header without isDefault
+                fileContent += trainerList.isDefault ? '[DefaultTrainerList]\n' : '[TrainerList]\n';
+
+                // Display each property of the TrainerList except isDefault
+                for (let key in trainerList) {
+                    if (key !== 'isDefault' && trainerList.hasOwnProperty(key)) {
+                        let value = trainerList[key];
+                        fileContent += `${key} = ${value}\n`;
+                    }
+                }
+            }
+
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            generatedContentTextarea.value = fileContent;
+        }
+        // Function to generate file content for the fifth format
+        /*function generateFileContentForFifthFormat(locations) {
+            let fileContent = '';
+
+            for (let i = 0; i < locations.length; i++) {
+                let location = locations[i];
+
+                fileContent += `#-------------------------------\n`;
+                fileContent += `[${location.name}] # ${location.type}\n`;
+
+                // Display each encounter
+                for (let j = 0; j < location.encounters.length; j++) {
+                    let encounter = location.encounters[j];
+
+                    fileContent += `${encounter.rate},${encounter.pokemon},${encounter.minLevel},${encounter.maxLevel}\n`;
+                }
+            }
+
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            generatedContentTextarea.value = fileContent;
+        }
+*/
+
 
         function saveDisplayedData() {
             let textBoxes = document.querySelectorAll('#editor input[type="text"]');
@@ -229,6 +916,7 @@
                     let sectionName = sectionHeader.innerText.slice(1, -1);
                     let key = textBox.previousSibling.innerText;
                     sections[sectionName][key] = textBox.value;
+                    console.log(sections);
                 }
             });
 
@@ -245,12 +933,16 @@
             }
             return null;
         }
-    // Add this function to generate content for the textarea
-    function generateOutputContent() {
-        let generatedContentTextarea = document.getElementById('generatedContent');
-        generatedContentTextarea.value = generateFileContent();
-    }
+        // Add this function to generate content for the textarea
+        function generateOutputContent() {
+            let generatedContentTextarea = document.getElementById('generatedContent');
+            generatedContentTextarea.value = generateFileContent();
+        }
+
+
     </script>
 
 
-</body></html>
+</body>
+
+</html>
